@@ -3,8 +3,13 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using TestHelper;
 using CodeCleanUpCodeFix;
+using JiraIntegration;
 
 namespace CodeCleanUpCodeFix.Test
 {
@@ -19,6 +24,55 @@ namespace CodeCleanUpCodeFix.Test
             var test = @"";
 
             VerifyCSharpDiagnostic(test);
+        }
+
+
+
+        public static string RunQuery(string query, string argument = null, string data = null, string method = "GET")
+        {
+            try
+            {
+                var m_BaseUrl = "https://jira.devfactory.com/rest/api/latest/issue/CC-29219";
+                HttpWebRequest newRequest = WebRequest.Create(m_BaseUrl) as HttpWebRequest;
+                newRequest.ContentType = "application/json";
+                newRequest.Method = method;
+
+                if (data != null)
+                {
+                    using (StreamWriter writer = new StreamWriter(newRequest.GetRequestStream()))
+                    {
+                        writer.Write(data);
+                    }
+                }
+
+                string base64Credentials = GetEncodedCredentials();
+                newRequest.Headers.Add("Authorization", "Basic " + base64Credentials);
+
+                HttpWebResponse response = newRequest.GetResponse() as HttpWebResponse;
+
+                string result = string.Empty;
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    result = reader.ReadToEnd();
+                }
+
+                newRequest = null;
+                response = null;
+
+                return result;
+            }
+            catch (Exception)
+            {
+                //MessageBox.Show(@"There is a problem getting data from Jira :" + "\n\n" + query, "Jira Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                throw;
+            }
+        }
+
+        private static string GetEncodedCredentials()
+        {
+            string mergedCredentials = string.Format("{0}:{1}", "tbrzozowski", "Adkitdjcvqwirwrl234");
+            byte[] byteCredentials = UTF8Encoding.UTF8.GetBytes(mergedCredentials);
+            return Convert.ToBase64String(byteCredentials);
         }
 
         //Diagnostic and CodeFix both triggered and checked for
@@ -71,7 +125,7 @@ namespace CodeCleanUpCodeFix.Test
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
-            return new CodeCleanUpCodeFixCodeFixProvider();
+            return new DuplicateMethodBodySameParentFixProvider();
         }
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()

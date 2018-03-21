@@ -15,6 +15,8 @@ namespace CodeCleanUpCodeFix
     {
         public const string DiagnosticId = "CodeCleanUpCodeFix";
 
+        public const string DuplicateMethodBodySameParentDiagnosticId = "DuplicateMethodBodySameParent";
+
         // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
         // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Localizing%20Analyzers.md for more on localization
         private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
@@ -24,13 +26,75 @@ namespace CodeCleanUpCodeFix
 
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Description);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(Rule); } }
+        private static DiagnosticDescriptor DuplicatedMethodBodyRule = new DiagnosticDescriptor(DuplicateMethodBodySameParentDiagnosticId, "Method body duplicated", "Method body duplicated format", Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Description);
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(Rule, DuplicatedMethodBodyRule); } }
 
         public override void Initialize(AnalysisContext context)
         {
             // TODO: Consider registering other actions that act on syntax instead of or in addition to symbols
             // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Analyzer%20Actions%20Semantics.md for more information
-            context.RegisterSymbolAction(AnalyzeSymbol, SymbolKind.NamedType);
+            //context.RegisterSymbolAction(AnalyzeSymbol, SymbolKind.NamedType);
+            context.RegisterCodeBlockAction(AnalyzeDuplicateMethodInSameClass);
+        }
+
+        private void AnalyzeDuplicateMethodInSameClass(CodeBlockAnalysisContext context)
+        {
+            var currentMethod = context.OwningSymbol as IMethodSymbol;
+            if (currentMethod == null)
+                return;
+
+            if (currentMethod.DeclaringSyntaxReferences.Length != 1)
+                return;
+
+            var currentMethodSyntax = (MethodDeclarationSyntax) currentMethod.DeclaringSyntaxReferences[0].GetSyntax();
+
+            if (currentMethod != null)
+            {
+                var parentClass = currentMethod.ContainingType;
+                var members = parentClass.GetMembers();
+
+                foreach (var member in members)
+                {
+                    var anotherMethod = member as IMethodSymbol;
+                    if (anotherMethod != null && anotherMethod.Name != currentMethod.Name)
+                    {
+                        if (anotherMethod.DeclaringSyntaxReferences.Length == 1)
+                        {
+                            var anotherMethodSyntax = (MethodDeclarationSyntax) anotherMethod.DeclaringSyntaxReferences[0].GetSyntax();
+                            if (anotherMethodSyntax.Body.ToString() == currentMethodSyntax.Body.ToString())
+                            {
+                                var diagnostic = Diagnostic.Create(DuplicatedMethodBodyRule, currentMethod.Locations[0], currentMethod.Name);
+
+                                context.ReportDiagnostic(diagnostic);
+                            }
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        private bool AreBodiesEqual(SyntaxNode currentMethodSyntax, SyntaxNode anotherMethodSyntax)
+        {
+            var currentChildNodes = currentMethodSyntax.ChildNodes().ToList();
+            var anotherChildNodes = anotherMethodSyntax.ChildNodes().ToList();
+
+            if (anotherChildNodes.Count != currentChildNodes.Count)
+            {
+                return false;
+            }
+
+            for(var i = 0; i< currentChildNodes.Count; i++)
+            {
+                if (currentChildNodes[i].ToString() != anotherChildNodes[i].ToString())
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static void AnalyzeSymbol(SymbolAnalysisContext context)
