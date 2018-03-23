@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using CodeCleanUpCodeFix.CodeFixProviders.CodeActions;
 using CodeCleanUpCodeFix.Consts;
-using CodeCleanUpCodeFix.Helpers.WinApiMessage;
+using CodeCleanUpCodeFix.Helpers.SyntaxHelpers;
 
 namespace CodeCleanUpCodeFix
 {
@@ -38,11 +38,11 @@ namespace CodeCleanUpCodeFix
 
             var locations = new List<Location>
             {
-                SyntaxNodeHelper.GetMethodBodyLocationFromDeclarationLocation(root, diagnostic.Location),
-                SyntaxNodeHelper.GetMethodBodyLocationFromDeclarationLocation(root, diagnostic.AdditionalLocations.First())
+                MethodStatementHelper.GetMethodBodyLocationFromDeclarationLocation(root, diagnostic.Location),
+                MethodStatementHelper.GetMethodBodyLocationFromDeclarationLocation(root, diagnostic.AdditionalLocations.First())
             };
 
-            var sourceCodeText = SyntaxNodeHelper.GetSourceCodeFromLocation(root, locations.First());
+            var sourceCodeText = SourceTextHelper.GetSourceCodeFromLocation(root, locations.First());
 
             var codeAction = new CreateJiraTicketCodeAction(
                 context.Document,

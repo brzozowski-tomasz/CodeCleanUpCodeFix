@@ -74,6 +74,7 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
             }
         }
         
+
         public override string Title { get; }
 
         public override string EquivalenceKey { get; }
