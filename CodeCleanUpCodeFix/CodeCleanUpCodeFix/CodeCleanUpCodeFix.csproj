@@ -21,6 +21,10 @@
     <PackageTags>CodeCleanUpCodeFix, analyzers</PackageTags>
     <NoPackageAnalysis>true</NoPackageAnalysis>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Remove="ToLowerCaseCodeFixProvider.cs" />
+  </ItemGroup>
    
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="2.4.0" PrivateAssets="all" />
