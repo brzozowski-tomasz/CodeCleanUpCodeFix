@@ -9,7 +9,7 @@ using CodeCleanUpCodeFix.CodeFixProviders.CodeActions;
 using CodeCleanUpCodeFix.Consts;
 using CodeCleanUpCodeFix.Helpers.SyntaxHelpers;
 
-namespace CodeCleanUpCodeFix
+namespace CodeCleanUpCodeFix.CodeFixProviders
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(JiraTicketCreatorFixProvider)), Shared]
     public class JiraTicketCreatorFixProvider : CodeFixProvider

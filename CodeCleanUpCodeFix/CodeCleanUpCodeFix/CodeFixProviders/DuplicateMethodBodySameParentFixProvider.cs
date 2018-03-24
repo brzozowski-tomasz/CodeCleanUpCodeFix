@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using CodeCleanUpCodeFix.Consts;
 
-namespace CodeCleanUpCodeFix
+namespace CodeCleanUpCodeFix.CodeFixProviders
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DuplicateMethodBodySameParentFixProvider)), Shared]
     public class DuplicateMethodBodySameParentFixProvider : CodeFixProvider

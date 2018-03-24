@@ -8,6 +8,9 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CodeCleanUpCodeFix.Test", "CodeCleanUpCodeFix\CodeCleanUpCodeFix.Test\CodeCleanUpCodeFix.Test.csproj", "{0EF8E2D9-D318-495B-BF57-4CE498E8EFD4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeCleanUpCodeFix.Vsix", "CodeCleanUpCodeFix\CodeCleanUpCodeFix.Vsix\CodeCleanUpCodeFix.Vsix.csproj", "{E7356728-FF38-48EC-BBFE-F36A53F6D117}"
+	ProjectSection(ProjectDependencies) = postProject
+		{7F50FF9C-1371-4474-A315-06302C5E5D22} = {7F50FF9C-1371-4474-A315-06302C5E5D22}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

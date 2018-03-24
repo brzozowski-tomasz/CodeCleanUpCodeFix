@@ -9,6 +9,8 @@ using System.Net.Http;
 using System.Text;
 using TestHelper;
 using CodeCleanUpCodeFix;
+using CodeCleanUpCodeFix.CodeAnalyzers;
+using CodeCleanUpCodeFix.CodeFixProviders;
 using JiraIntegration;
 
 namespace CodeCleanUpCodeFix.Test
@@ -130,7 +132,7 @@ namespace CodeCleanUpCodeFix.Test
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new CodeCleanUpCodeFixAnalyzer();
+            return new DuplicateMethodBodySameParentAnalyzer();
         }
     }
 }
