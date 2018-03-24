@@ -80,14 +80,15 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
         public override string EquivalenceKey { get; }
 
         public CreateJiraTicketCodeAction(
+            string title,
+            TicketIssueType ticketType,
             Document document,
             List<Location> locations,
-            SourceText sourceText
-            )
+            SourceText sourceText)
         {
-            _createChangedDocument = c => CreateJiraTicket(document, locations, sourceText);
-            Title = "Create Jira Ticket";
-            EquivalenceKey = "Create Jira Ticket";
+            _createChangedDocument = c => CreateJiraTicket(ticketType, document, locations, sourceText);
+            Title = title;
+            EquivalenceKey = title;
         }
 
         protected override Task<IEnumerable<CodeActionOperation>> ComputePreviewOperationsAsync(
@@ -103,6 +104,7 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
         }
 
         private async Task<Document> CreateJiraTicket(
+            TicketIssueType ticketType,
             Document document,
             List<Location> locations,
             SourceText sourceText)
@@ -112,13 +114,32 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
                 ProjectCode = GlobalSettingsConsts.JiraProject,
                 Summary = TicketHelper.GetDuplicateTicketSummary(document),
                 Description = TicketHelper.GetDuplicateTicketDescription(document, locations, sourceText),
-                IssueTypeName = JiraConsts.DuplicateCodeTicketType
+                IssueTypeName = MapTicketTypeToIssueTypeName(ticketType)
             };
 
             var result = JiraClient.CreateTicket(ticketToCreate);
-            MessageBox.Show("Jira related ticket:", result.Self);
+            if (result.IsSuccessfull)
+            {
+                MessageBox.Show("Jira related ticket:", result.Self);
+            }
+            else
+            {
+                MessageBox.Show("Jira ticket creation failed:", result.ResponseMessage);
+            }
 
             return document;
+        }
+
+        private string MapTicketTypeToIssueTypeName(TicketIssueType ticketType)
+        {
+            switch (ticketType)
+            {
+                case TicketIssueType.DuplicateCode: return JiraConsts.DuplicateCodeTicketType;
+                case TicketIssueType.LongMethod: return JiraConsts.LongMethodTicketType;
+                case TicketIssueType.HandCraftedUnitTest: return JiraConsts.HandCraftedUnitTestsTicketType;
+            }
+
+            return string.Empty;
         }
     }
 }

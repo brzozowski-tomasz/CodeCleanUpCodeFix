@@ -7,26 +7,25 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using CodeCleanUpCodeFix.CodeFixProviders.CodeActions;
 using CodeCleanUpCodeFix.Consts;
+using CodeCleanUpCodeFix.Helpers.JiraIntegration;
 using CodeCleanUpCodeFix.Helpers.SyntaxHelpers;
 
 namespace CodeCleanUpCodeFix.CodeFixProviders
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(JiraTicketCreatorFixProvider)), Shared]
-    public class JiraTicketCreatorFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(JiraLongMethodTicketCreatorFixProvider)), Shared]
+    public class JiraLongMethodTicketCreatorFixProvider : CodeFixProvider
     {
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
             get
             {
                 return ImmutableArray.Create(
-                    DiagnosticsConsts.DuplicateMethodBodySameParentDiagnosticId,
-                    DiagnosticsConsts.DuplicatePropertySameBaseClassDiagnosticId);
+                    DiagnosticsConsts.MethodTooLongDiagnosticId);
             }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
         {
-            // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/FixAllProvider.md for more information on Fix All Providers
             return WellKnownFixAllProviders.BatchFixer;
         }
 
@@ -39,17 +38,26 @@ namespace CodeCleanUpCodeFix.CodeFixProviders
             var locations = new List<Location>
             {
                 MethodStatementHelper.GetMethodBodyLocationFromDeclarationLocation(root, diagnostic.Location),
-                MethodStatementHelper.GetMethodBodyLocationFromDeclarationLocation(root, diagnostic.AdditionalLocations.First())
             };
 
             var sourceCodeText = SourceTextHelper.GetSourceCodeFromLocation(root, locations.First());
 
-            var codeAction = new CreateJiraTicketCodeAction(
+            var codeCleanUpTicketAction = new CreateJiraTicketCodeAction(
+                "Create Code CleanUp Jira Ticket",
+                TicketIssueType.LongMethod,
                 context.Document,
                 locations,
                 sourceCodeText);
 
-            context.RegisterCodeFix(codeAction, diagnostic);
+            var hutTicketAction = new CreateJiraTicketCodeAction(
+                "Create HUT Jira Ticket",
+                TicketIssueType.HandCraftedUnitTest,
+                context.Document,
+                locations,
+                sourceCodeText);
+
+            context.RegisterCodeFix(codeCleanUpTicketAction, diagnostic);
+            context.RegisterCodeFix(hutTicketAction, diagnostic);
         }
 
         private Task<Document> FixIssue()

@@ -4,5 +4,6 @@
     {
         public const string DuplicateMethodBodySameParentDiagnosticId = "DuplicateMethodBodySameParent";
         public const string DuplicatePropertySameBaseClassDiagnosticId = "DuplicatePropertySameBaseClass";
+        public const string MethodTooLongDiagnosticId = "MethodTooLong";
     }
 }
