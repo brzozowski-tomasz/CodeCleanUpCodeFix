@@ -12,7 +12,7 @@ namespace JiraIntegration.Test
         private const string JiraPassword = "Adkitdjcvqwirwrl234";
 
         [TestMethod]
-        public void CreateTicket_CorrectTicketDataSent_TicketCreatedSuccessfully()
+        public void JiraClient_CreateTicket_CorrectTicketDataSent_TicketCreatedSuccessfully()
         {
             // Arrange
             var jiraClient = new JiraClient(JiraUri, JiraUser, JiraPassword);
@@ -36,7 +36,7 @@ namespace JiraIntegration.Test
         }
 
         [TestMethod]
-        public void CreateTicket_WrongTicketDataSent_TicketNotCreated()
+        public void JiraClient_CreateTicket_WrongTicketDataSent_TicketNotCreated()
         {
             // Arrange
             var jiraClient = new JiraClient(JiraUri, JiraUser, JiraPassword);
