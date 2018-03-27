@@ -4,7 +4,6 @@ using System.Linq;
 using CodeCleanUpCodeFix.Consts;
 using CodeCleanUpCodeFix.Helpers.SyntaxHelpers;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -31,58 +30,117 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
 
         public override void Initialize(AnalysisContext context)
         {
-            context.RegisterSyntaxNodeAction(AnalyzeClassDeclarationNodeForSameMethods, SyntaxKind.ClassDeclaration);
+            context.RegisterSyntaxTreeAction(AnalyzeClassDeclarationNodeForSameMethods);
+            context.RegisterCompilationAction(AAA);
         }
 
-        private void AnalyzeClassDeclarationNodeForSameMethods(SyntaxNodeAnalysisContext context)
+        private void AAA(CompilationAnalysisContext context)
         {
-            var currentClass = context.ContainingSymbol as INamedTypeSymbol;
-            if (currentClass == null)
+            var trees = context.Compilation.SyntaxTrees;
+            var root = trees.First().GetRoot();
+
+            //var root = context.Tree.GetRoot();
+            //var allClasses = context.Tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
+            //foreach (var currentClass in allClasses)
+            //{
+            //    if (currentClass == null)
+            //    {
+            //        return;
+            //    }
+
+            //    //if (currentClass.DeclaringSyntaxReferences.Length != 1)
+            //    //{
+            //    //    return;
+            //    //}
+
+            //    //var currentClassSyntax = (ClassDeclarationSyntax) currentClass.DeclaringSyntaxReferences[0].GetSyntax();
+
+            //    var classVisitor = new ClassVirtualizationVisitor();
+            //    classVisitor.Visit(context.Tree.GetRoot());
+            //    var classes = classVisitor.Classes;
+            //    var childClasses = new List<ClassDeclarationSyntax>();
+
+            //    foreach (var classToExamine in classes)
+            //    {
+            //        if (classToExamine.BaseList != null)
+            //        {
+            //            foreach (var baseType in classToExamine.BaseList.Types.OfType<SimpleBaseTypeSyntax>())
+            //            {
+            //                var baseTypeIdentifier = baseType.Type as IdentifierNameSyntax;
+            //                if (baseTypeIdentifier != null)
+            //                {
+            //                    if (baseTypeIdentifier.Identifier.ValueText == currentClass.Identifier.ValueText)
+            //                    {
+            //                        childClasses.Add(classToExamine);
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+
+            //    if (childClasses.Count > 0)
+            //    {
+            //        foreach (var childClass in childClasses)
+            //        {
+            //            LookForPropertyDuplicationWithinChildClasses(context, currentClass, childClass, childClasses);
+            //        }
+            //    }
+            //}
+        }
+
+        private void AnalyzeClassDeclarationNodeForSameMethods(SyntaxTreeAnalysisContext context)
+        {
+            var root = context.Tree.GetRoot();
+            var allClasses = context.Tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
+            foreach (var currentClass in allClasses)
             {
-                return;
-            }
-
-            if (currentClass.DeclaringSyntaxReferences.Length != 1)
-            {
-                return;
-            }
-
-            var currentClassSyntax = (ClassDeclarationSyntax) currentClass.DeclaringSyntaxReferences[0].GetSyntax();
-
-            var classVisitor = new ClassVirtualizationVisitor();
-            classVisitor.Visit(context.SemanticModel.SyntaxTree.GetRoot());
-            var classes = classVisitor.Classes;
-            var childClasses = new List<ClassDeclarationSyntax>();
-
-            foreach (var classToExamine in classes)
-            {
-                if (classToExamine.BaseList != null)
+                if (currentClass == null)
                 {
-                    foreach (var baseType in classToExamine.BaseList.Types.OfType<SimpleBaseTypeSyntax>())
+                    return;
+                }
+
+                //if (currentClass.DeclaringSyntaxReferences.Length != 1)
+                //{
+                //    return;
+                //}
+
+                //var currentClassSyntax = (ClassDeclarationSyntax) currentClass.DeclaringSyntaxReferences[0].GetSyntax();
+
+                var classVisitor = new ClassVirtualizationVisitor();
+                classVisitor.Visit(context.Tree.GetRoot());
+                var classes = classVisitor.Classes;
+                var childClasses = new List<ClassDeclarationSyntax>();
+
+                foreach (var classToExamine in classes)
+                {
+                    if (classToExamine.BaseList != null)
                     {
-                        var baseTypeIdentifier = baseType.Type as IdentifierNameSyntax;
-                        if (baseTypeIdentifier != null)
+                        foreach (var baseType in classToExamine.BaseList.Types.OfType<SimpleBaseTypeSyntax>())
                         {
-                            if (baseTypeIdentifier.Identifier.ValueText == currentClassSyntax.Identifier.ValueText)
+                            var baseTypeIdentifier = baseType.Type as IdentifierNameSyntax;
+                            if (baseTypeIdentifier != null)
                             {
-                                childClasses.Add(classToExamine);
+                                if (baseTypeIdentifier.Identifier.ValueText == currentClass.Identifier.ValueText)
+                                {
+                                    childClasses.Add(classToExamine);
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            if (childClasses.Count > 0)
-            {
-                foreach (var childClass in childClasses)
+                if (childClasses.Count > 0)
                 {
-                    LookForPropertyDuplicationWithinChildClasses(context, currentClassSyntax, childClass, childClasses);
+                    foreach (var childClass in childClasses)
+                    {
+                        LookForPropertyDuplicationWithinChildClasses(context, currentClass, childClass, childClasses);
+                    }
                 }
             }
         }
 
         private void LookForPropertyDuplicationWithinChildClasses(
-            SyntaxNodeAnalysisContext context,
+            SyntaxTreeAnalysisContext context,
             ClassDeclarationSyntax baseClass,
             ClassDeclarationSyntax currentChildClass,
             List<ClassDeclarationSyntax> childClasses)
@@ -107,6 +165,11 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
                             DuplicatedPopertySameBaseClassRule,
                             property.GetLocation(),
                             new List<Location> { equalProperty.GetLocation()},
+                            new Dictionary<string, string>()
+                            {
+                                { "BaseClassDeclarationStart", baseClass.Span.Start.ToString() },
+                                { "BaseClassDeclarationLength", baseClass.Span.Length.ToString() }
+                            }.ToImmutableDictionary(),
                             property.Identifier.Value,
                             currentChildClass.Identifier.ValueText,
                             childClass.Identifier.ValueText);

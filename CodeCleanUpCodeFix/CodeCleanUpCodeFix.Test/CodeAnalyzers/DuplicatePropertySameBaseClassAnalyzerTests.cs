@@ -122,8 +122,6 @@ namespace CodeCleanUpCodeFix.Test.CodeAnalyzers
 
         class ChildClassB: BaseClass
         {
-            private string _someField;
-
             public string SomeProperty
             {
                 get

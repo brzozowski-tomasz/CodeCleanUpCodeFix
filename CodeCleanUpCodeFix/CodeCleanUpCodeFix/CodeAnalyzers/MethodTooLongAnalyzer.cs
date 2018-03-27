@@ -49,10 +49,10 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
             }
 
             var currentClassSyntax = (ClassDeclarationSyntax)currentClass.DeclaringSyntaxReferences[0].GetSyntax();
-            LookForMethodDuplicationWithinClass(context, currentClassSyntax);
+            LookForTooLongMethodWithinClass(context, currentClassSyntax);
         }
 
-        private void LookForMethodDuplicationWithinClass(SyntaxNodeAnalysisContext context, ClassDeclarationSyntax ownerClass)
+        private void LookForTooLongMethodWithinClass(SyntaxNodeAnalysisContext context, ClassDeclarationSyntax ownerClass)
         {
             var methods = ownerClass.DescendantNodes().OfType<MethodDeclarationSyntax>().ToList();
 
