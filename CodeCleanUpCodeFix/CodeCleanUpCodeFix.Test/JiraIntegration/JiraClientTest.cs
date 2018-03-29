@@ -12,6 +12,7 @@ namespace JiraIntegration.Test
         private const string JiraPassword = "Adkitdjcvqwirwrl234";
 
         [TestMethod]
+        [Ignore]
         public void JiraClient_CreateTicket_CorrectTicketDataSent_TicketCreatedSuccessfully()
         {
             // Arrange

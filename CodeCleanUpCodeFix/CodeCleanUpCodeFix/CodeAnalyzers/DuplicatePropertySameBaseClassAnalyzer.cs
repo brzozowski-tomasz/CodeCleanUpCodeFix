@@ -2,7 +2,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using CodeCleanUpCodeFix.Consts;
+using CodeCleanUpCodeFix.Helpers.SyntaxExtensions;
 using CodeCleanUpCodeFix.Helpers.SyntaxHelpers;
+using CodeCleanUpCodeFix.Helpers.WinApiMessage.Interfaces;
+using CodeCleanUpCodeFix.Helpers.WinApiMessage;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -12,6 +15,25 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class DuplicatePropertySameBaseClassAnalyzer : DiagnosticAnalyzer
     {
+        private IWinApiMessageBox _winApiMessageBox;
+
+        public IWinApiMessageBox MessageBox
+        {
+            get
+            {
+                if (_winApiMessageBox == null)
+                {
+                    _winApiMessageBox = new WinApiMessageBox();
+                }
+
+                return _winApiMessageBox;
+            }
+            set
+            {
+                _winApiMessageBox = value;
+            }
+        }
+
         private static readonly LocalizableString Title = "Duplicate property";
         private static readonly LocalizableString MessageFormat = "Property '{0}' in '{1}' class is exactly same as in '{2}' class.";
         private static readonly LocalizableString Description = "Both classes have same base class - common properties can be extracted to base class.";
@@ -30,118 +52,29 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
 
         public override void Initialize(AnalysisContext context)
         {
-            context.RegisterSyntaxTreeAction(AnalyzeClassDeclarationNodeForSameMethods);
-            context.RegisterCompilationAction(AAA);
+            context.RegisterCompilationAction(AnalyzeCompilationForDuplicateClassProperties);
         }
 
-        private void AAA(CompilationAnalysisContext context)
+        private void AnalyzeCompilationForDuplicateClassProperties(CompilationAnalysisContext context)
         {
-            var trees = context.Compilation.SyntaxTrees;
-            var root = trees.First().GetRoot();
+            var allClasses = CompilationHelper.GetDeclarationsFromCompilation<ClassDeclarationSyntax>(context.Compilation);
 
-            //var root = context.Tree.GetRoot();
-            //var allClasses = context.Tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
-            //foreach (var currentClass in allClasses)
-            //{
-            //    if (currentClass == null)
-            //    {
-            //        return;
-            //    }
-
-            //    //if (currentClass.DeclaringSyntaxReferences.Length != 1)
-            //    //{
-            //    //    return;
-            //    //}
-
-            //    //var currentClassSyntax = (ClassDeclarationSyntax) currentClass.DeclaringSyntaxReferences[0].GetSyntax();
-
-            //    var classVisitor = new ClassVirtualizationVisitor();
-            //    classVisitor.Visit(context.Tree.GetRoot());
-            //    var classes = classVisitor.Classes;
-            //    var childClasses = new List<ClassDeclarationSyntax>();
-
-            //    foreach (var classToExamine in classes)
-            //    {
-            //        if (classToExamine.BaseList != null)
-            //        {
-            //            foreach (var baseType in classToExamine.BaseList.Types.OfType<SimpleBaseTypeSyntax>())
-            //            {
-            //                var baseTypeIdentifier = baseType.Type as IdentifierNameSyntax;
-            //                if (baseTypeIdentifier != null)
-            //                {
-            //                    if (baseTypeIdentifier.Identifier.ValueText == currentClass.Identifier.ValueText)
-            //                    {
-            //                        childClasses.Add(classToExamine);
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    if (childClasses.Count > 0)
-            //    {
-            //        foreach (var childClass in childClasses)
-            //        {
-            //            LookForPropertyDuplicationWithinChildClasses(context, currentClass, childClass, childClasses);
-            //        }
-            //    }
-            //}
-        }
-
-        private void AnalyzeClassDeclarationNodeForSameMethods(SyntaxTreeAnalysisContext context)
-        {
-            var root = context.Tree.GetRoot();
-            var allClasses = context.Tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
             foreach (var currentClass in allClasses)
             {
-                if (currentClass == null)
-                {
-                    return;
-                }
+                var childClasses = allClasses.Where(classToExamine => classToExamine.IsInheritedFrom(currentClass)).ToList();
 
-                //if (currentClass.DeclaringSyntaxReferences.Length != 1)
-                //{
-                //    return;
-                //}
-
-                //var currentClassSyntax = (ClassDeclarationSyntax) currentClass.DeclaringSyntaxReferences[0].GetSyntax();
-
-                var classVisitor = new ClassVirtualizationVisitor();
-                classVisitor.Visit(context.Tree.GetRoot());
-                var classes = classVisitor.Classes;
-                var childClasses = new List<ClassDeclarationSyntax>();
-
-                foreach (var classToExamine in classes)
-                {
-                    if (classToExamine.BaseList != null)
-                    {
-                        foreach (var baseType in classToExamine.BaseList.Types.OfType<SimpleBaseTypeSyntax>())
-                        {
-                            var baseTypeIdentifier = baseType.Type as IdentifierNameSyntax;
-                            if (baseTypeIdentifier != null)
-                            {
-                                if (baseTypeIdentifier.Identifier.ValueText == currentClass.Identifier.ValueText)
-                                {
-                                    childClasses.Add(classToExamine);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (childClasses.Count > 0)
+                if (childClasses.Any())
                 {
                     foreach (var childClass in childClasses)
                     {
-                        LookForPropertyDuplicationWithinChildClasses(context, currentClass, childClass, childClasses);
+                        LookForPropertyDuplicationWithinChildClasses(context, childClass, childClasses);
                     }
                 }
             }
         }
 
         private void LookForPropertyDuplicationWithinChildClasses(
-            SyntaxTreeAnalysisContext context,
-            ClassDeclarationSyntax baseClass,
+            CompilationAnalysisContext context,
             ClassDeclarationSyntax currentChildClass,
             List<ClassDeclarationSyntax> childClasses)
         {
@@ -155,7 +88,7 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
                 }
 
                 var properties = childClass.DescendantNodes().OfType<PropertyDeclarationSyntax>().ToList();
-                
+
                 foreach (var property in currentChildClassProperties)
                 {
                     var equalProperty = FindEqualPropertyInProperties(property, properties);
@@ -164,12 +97,7 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
                         var diagnostic = Diagnostic.Create(
                             DuplicatedPopertySameBaseClassRule,
                             property.GetLocation(),
-                            new List<Location> { equalProperty.GetLocation()},
-                            new Dictionary<string, string>()
-                            {
-                                { "BaseClassDeclarationStart", baseClass.Span.Start.ToString() },
-                                { "BaseClassDeclarationLength", baseClass.Span.Length.ToString() }
-                            }.ToImmutableDictionary(),
+                            new List<Location> { equalProperty.GetLocation() },
                             property.Identifier.Value,
                             currentChildClass.Identifier.ValueText,
                             childClass.Identifier.ValueText);
@@ -186,7 +114,7 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
         {
             foreach (var propertyToExamine in propertiesToExamine)
             {
-                if (propertyToExamine.Identifier.Value == property.Identifier.Value)
+                if (propertyToExamine.Identifier.ValueText == property.Identifier.ValueText)
                 {
                     // Very simple comparison of methods - could be implemented smarter:
                     if (propertyToExamine.GetText().ToString() == property.GetText().ToString())

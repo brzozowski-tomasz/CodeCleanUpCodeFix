@@ -103,7 +103,7 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
             return _createChangedDocument(cancellationToken);
         }
 
-        private async Task<Document> CreateJiraTicket(
+        private Task<Document> CreateJiraTicket(
             TicketIssueType ticketType,
             Document document,
             List<Location> locations,
@@ -127,7 +127,7 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
                 MessageBox.Show("Jira ticket creation failed:", result.ResponseMessage);
             }
 
-            return document;
+            return Task.FromResult(document);
         }
 
         private string MapTicketTypeToIssueTypeName(TicketIssueType ticketType)

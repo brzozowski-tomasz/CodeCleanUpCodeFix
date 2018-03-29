@@ -5,43 +5,41 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CodeCleanUpCodeFix.Helpers.SyntaxExtensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
 {
     class ElevatePropertiesToClosestBaseClassCodeAction : CodeAction
     {
-        private readonly Func<CancellationToken, Task<Document>> _createChangedDocument;
-        
+        private readonly Func<CancellationToken, Task<Solution>> _createChangedSolution;
+
         public override string Title { get; }
 
         public override string EquivalenceKey { get; }
 
         public ElevatePropertiesToClosestBaseClassCodeAction(
-            SyntaxNode root,
             Document document,
             ClassDeclarationSyntax targetBaseClass,
             List<PropertyDeclarationSyntax> propertiesToElevate,
             CancellationToken cancellationToken)
         {
-            _createChangedDocument = c => ElevatePropertiesToClosestBaseClass(
-                root,
+            _createChangedSolution = c => ElevatePropertiesToClosestBaseClassSolution(
                 document,
                 targetBaseClass,
                 propertiesToElevate,
                 cancellationToken);
+
             Title = "Elevate property to base class";
             EquivalenceKey = "Elevate property to base class";
         }
 
-        protected override Task<Document> GetChangedDocumentAsync(
-            CancellationToken cancellationToken)
+        protected override Task<Solution> GetChangedSolutionAsync(CancellationToken cancellationToken)
         {
-            return _createChangedDocument(cancellationToken);
+            return _createChangedSolution(cancellationToken);
         }
 
-        private Task<Document> ElevatePropertiesToClosestBaseClass(
-            SyntaxNode root,
+        private Task<Solution> ElevatePropertiesToClosestBaseClassSolution(
             Document document,
             ClassDeclarationSyntax targetBaseClass,
             List<PropertyDeclarationSyntax> propertiesToElevate,
@@ -49,43 +47,63 @@ namespace CodeCleanUpCodeFix.CodeFixProviders.CodeActions
         {
             if (cancellationToken.IsCancellationRequested)
             {
-                return Task.FromResult(document);
+                return Task.FromResult(document.Project.Solution);
             }
 
-            RemovePropertiesFromChildClasses(ref root, propertiesToElevate);
-            AddPropertyToBaseClass(ref root, targetBaseClass, propertiesToElevate.First());
+            var solution = document.Project.Solution;
+            
+            RemovePropertiesFromChildClasses(ref solution, propertiesToElevate);
+            AddPropertyToBaseClass(ref solution, targetBaseClass, propertiesToElevate.First());
 
-            return Task.FromResult(document.WithSyntaxRoot(root));
+            return Task.FromResult(solution);
         }
 
         private void AddPropertyToBaseClass(
-            ref SyntaxNode root,
+            ref Solution solution,
             ClassDeclarationSyntax targetBaseClass,
             PropertyDeclarationSyntax propertyToAdd)
         {
-            var targetBaseClassIdentifier = targetBaseClass.Identifier.ValueText;
-            targetBaseClass = root.DescendantNodes().OfType<ClassDeclarationSyntax>()
-                .FirstOrDefault(classNode => classNode.Identifier.ValueText == targetBaseClassIdentifier);
-
             var newTargetBaseClassMembers = targetBaseClass.Members.Add(propertyToAdd);
             var newtargetBaseClass = targetBaseClass.WithMembers(newTargetBaseClassMembers);
 
-            root = root.ReplaceNode(targetBaseClass, newtargetBaseClass);
+            var document = solution.GetDocumentContainingNode(targetBaseClass);
+            if (document == null)
+            {
+                return;
+            }
+
+            var documentRoot = document.GetSyntaxRootAsync().GetAwaiter().GetResult();
+
+            var oldBaseClass = documentRoot.DescendantNodes().OfType<ClassDeclarationSyntax>().FirstOrDefault(classDeclaration =>
+                classDeclaration.Identifier.ValueText == targetBaseClass.Identifier.ValueText);
+
+            var root = documentRoot.ReplaceNode(oldBaseClass, newtargetBaseClass);
+            solution = solution.WithDocumentSyntaxRoot(document.Id, root);
         }
 
         private void RemovePropertiesFromChildClasses(
-            ref SyntaxNode root,
+            ref Solution solution,
             List<PropertyDeclarationSyntax> propertiesToElevate)
         {
-            var nodesToRemove = new List<SyntaxNode>();
+            var treesToModifyDictionary = new Dictionary<SyntaxTree, List<SyntaxNode>>();
 
             foreach (var propertyToElevate in propertiesToElevate)
             {
-                var node = root.FindNode(propertyToElevate.FullSpan);
-                nodesToRemove.Add(node);
+                if (!treesToModifyDictionary.ContainsKey(propertyToElevate.SyntaxTree))
+                {
+                    treesToModifyDictionary.Add(propertyToElevate.SyntaxTree, new List<SyntaxNode>());
+                }
+
+                treesToModifyDictionary[propertyToElevate.SyntaxTree].Add(propertyToElevate);
             }
 
-            root = root.RemoveNodes(nodesToRemove, SyntaxRemoveOptions.KeepNoTrivia);
+            foreach (var treeToModify in treesToModifyDictionary)
+            {
+                var originalRoot = treeToModify.Key.GetRoot();
+                var root = originalRoot.RemoveNodes(treeToModify.Value, SyntaxRemoveOptions.KeepNoTrivia);
+                solution = solution.WithDocumentSyntaxRoot(solution.GetDocumentId(treeToModify.Key), root);
+            }
         }
     }
 }
+

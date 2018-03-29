@@ -44,14 +44,7 @@ namespace CodeCleanUpCodeFix.Test
 
             public int SomeProperty
             {
-                get
-                {
-                    return _someField;
-                }
-                set
-                {
-                    _someField = value;
-                }
+                get; set;
             }
         }
 
@@ -61,14 +54,7 @@ namespace CodeCleanUpCodeFix.Test
 
             public int SomeProperty
             {
-                get
-                {
-                    return _someField;
-                }
-                set
-                {
-                    _someField = value;
-                }
+                get; set;
             }
         }
     }";
@@ -84,16 +70,10 @@ namespace CodeCleanUpCodeFix.Test
     {
         class BaseClass
         {
+
             public int SomeProperty
             {
-                get
-                {
-                    return _someField;
-                }
-                set
-                {
-                    _someField = value;
-                }
+                get; set;
             }
         }
 

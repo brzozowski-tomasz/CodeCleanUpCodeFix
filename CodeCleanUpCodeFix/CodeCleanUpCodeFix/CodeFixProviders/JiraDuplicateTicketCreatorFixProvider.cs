@@ -20,8 +20,7 @@ namespace CodeCleanUpCodeFix.CodeFixProviders
             get
             {
                 return ImmutableArray.Create(
-                    DiagnosticsConsts.DuplicateMethodBodySameParentDiagnosticId,
-                    DiagnosticsConsts.DuplicatePropertySameBaseClassDiagnosticId);
+                    DiagnosticsConsts.DuplicateMethodBodySameParentDiagnosticId);
             }
         }
 
