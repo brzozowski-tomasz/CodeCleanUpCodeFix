@@ -47,7 +47,7 @@ namespace CodeCleanUpCodeFix.CodeFixProviders
 
             var baseClassName = (parentClass.BaseList.Types.OfType<SimpleBaseTypeSyntax>().First().Type as IdentifierNameSyntax).Identifier.ValueText;
             var compilation = context.Document.Project.GetCompilationAsync().GetAwaiter().GetResult();
-            var targetBaseClass = CompilationHelper.GetDeclarationsFromCompilation<ClassDeclarationSyntax>(compilation).First(classDeclaration =>
+            var targetBaseClass = compilation.DescendantNodes<ClassDeclarationSyntax>().First(classDeclaration =>
                 classDeclaration.Identifier.ValueText == baseClassName);
 
             var codeAction = new ElevatePropertiesToClosestBaseClassCodeAction(

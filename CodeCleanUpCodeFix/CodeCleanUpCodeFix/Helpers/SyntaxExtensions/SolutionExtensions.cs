@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
+using CodeCleanUpCodeFix.Helpers.SyntaxHelpers;
 using Microsoft.CodeAnalysis;
 
 namespace CodeCleanUpCodeFix.Helpers.SyntaxExtensions
@@ -20,6 +22,19 @@ namespace CodeCleanUpCodeFix.Helpers.SyntaxExtensions
             }
             
             return solution.GetDocument(documentId);
+        }
+
+        public static List<T> DescendantNodes<T>(this Solution solution)
+        {
+            var descendantNodes = new List<T>();
+
+            foreach (var project in solution.Projects)
+            {
+                var compilation = project.GetCompilationAsync().GetAwaiter().GetResult();
+                descendantNodes.AddRange(compilation.DescendantNodes<T>());
+            }
+
+            return descendantNodes;
         }
     }
 }

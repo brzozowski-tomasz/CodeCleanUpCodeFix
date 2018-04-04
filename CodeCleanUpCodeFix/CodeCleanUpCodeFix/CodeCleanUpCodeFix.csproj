@@ -28,7 +28,7 @@
    
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="2.7.0" PrivateAssets="all" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" PrivateAssets="all" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" PrivateAssets="all" />
     <PackageReference Update="NETStandard.Library" PrivateAssets="all" />
   </ItemGroup>
 

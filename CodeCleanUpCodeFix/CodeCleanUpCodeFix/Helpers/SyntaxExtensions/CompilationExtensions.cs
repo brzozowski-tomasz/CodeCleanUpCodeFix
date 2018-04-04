@@ -4,18 +4,18 @@ using Microsoft.CodeAnalysis;
 
 namespace CodeCleanUpCodeFix.Helpers.SyntaxHelpers
 {
-    public static class CompilationHelper
+    public static class CompilationExtensions
     {
-        public static List<T> GetDeclarationsFromCompilation<T>(Compilation compilation)
+        public static List<T> DescendantNodes<T>(this Compilation compilation)
         {
-            var allClasses = new List<T>();
+            var descendantNodes = new List<T>();
 
             foreach (var tree in compilation.SyntaxTrees)
             {
                 var root = tree.GetRootAsync().GetAwaiter().GetResult();
-                allClasses.AddRange(root.DescendantNodes().OfType<T>());
+                descendantNodes.AddRange(root.DescendantNodes().OfType<T>());
             }
-            return allClasses;
+            return descendantNodes;
         }
 
     }

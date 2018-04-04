@@ -57,7 +57,7 @@ namespace CodeCleanUpCodeFix.CodeAnalyzers
 
         private void AnalyzeCompilationForDuplicateClassProperties(CompilationAnalysisContext context)
         {
-            var allClasses = CompilationHelper.GetDeclarationsFromCompilation<ClassDeclarationSyntax>(context.Compilation);
+            var allClasses = context.Compilation.DescendantNodes<ClassDeclarationSyntax>();
 
             foreach (var currentClass in allClasses)
             {

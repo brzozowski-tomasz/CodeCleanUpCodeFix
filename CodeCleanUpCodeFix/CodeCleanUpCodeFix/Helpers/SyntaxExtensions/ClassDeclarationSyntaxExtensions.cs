@@ -24,5 +24,23 @@ namespace CodeCleanUpCodeFix.Helpers.SyntaxExtensions
 
             return false;
         }
+
+        public static string GetBaseClassName(this ClassDeclarationSyntax childClass)
+        {
+            if (childClass.BaseList != null)
+            {
+                var baseType = childClass.BaseList.Types.OfType<SimpleBaseTypeSyntax>().FirstOrDefault();
+                if (baseType != null)
+                {
+                    var baseTypeIdentifier = baseType.Type as IdentifierNameSyntax;
+                    if (baseTypeIdentifier != null)
+                    {
+                        return baseTypeIdentifier.Identifier.ValueText;
+                    }
+                }
+            }
+
+            return string.Empty;
+        }
     }
 }

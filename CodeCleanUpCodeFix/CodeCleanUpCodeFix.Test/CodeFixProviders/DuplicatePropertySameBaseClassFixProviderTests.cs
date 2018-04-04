@@ -21,7 +21,7 @@ namespace CodeCleanUpCodeFix.Test
         }
 
         [TestMethod]
-        public void DuplicateMethodBodySameParentFixProvider_MethodsWithoutParameters_CodeFixedCorrectly()
+        public void DuplicatePropertySameBaseClassFixProvider_MethodsWithoutParameters_CodeFixedCorrectly()
         {
             // Arrange
             var input = @"
